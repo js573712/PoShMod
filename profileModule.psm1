@@ -868,7 +868,16 @@ Export-PfxCertificate @exportParams
 Export-Certificate -Cert $rootCACert -FilePath 'JWSRootCACert.cer' -Type CERT
 }
 #================================
-
+function ssh-copyID($user,$server) {
+   $check = read-host -Prompt "Upload? y/n"
+   if($check -eq "y"){
+   cat ~/.ssh/id_rsa.pub | ssh "$user"@"$server" "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys"
+   }
+   else {
+      write-host("Exiting.")
+      return 
+   }
+}
 
 #================================
 #
