@@ -760,6 +760,117 @@ $response = Invoke-RestMethod 'https://api.openai.com/v1/completions' -Method 'P
 (($response).choices).text | ConvertTo-Json
 }
 #================================
+function generate-selfSignedCert {
+   param (
+       $certDomains = @('DEVSERVER', 'DEVSERVER.local'),
+       $certFriendlyName = "Test Self-Signed Cert",
+       $certFileName = "TestCert.cer",
+       $certIPAddresses = @('192.168.2.3'))
+
+<#	
+ .SYNOPSIS 
+   Creates a basic self-signed certificate that for the specified host names.
+ .DESCRIPTION
+   Creates a basic self-signed certificate that for the specified host names.  
+ .NOTES
+
+   Modified from original sample script by: 
+
+   Author: jpann@impostr-labs.com
+   Filename: Create-SelfSignedCertBasic.ps1
+   Created on: 03-15-2022
+   Version: 1.0
+   Last updated: 03-15-2022
+#>
+
+if (-not(test-isElevated))
+{
+   throw "Please run this script as an administrator" 
+}
+
+Write-Host "Creating self-signed certificate called '$certFriendlyName' in LocalMachine\Personal store..." 
+$params = @{
+ DnsName = $certDomains
+ Subject = $certFriendlyName
+ FriendlyName = $certFriendlyName
+ KeyLength = 4096
+ KeyAlgorithm = 'RSA'
+ HashAlgorithm = 'SHA256'
+ KeyExportPolicy = 'Exportable'
+ NotAfter = (Get-Date).AddYears(15)
+ CertStoreLocation = "Cert:\LocalMachine\My"
+}
+$continue = $true
+while($continue){
+$edit = read-host -Prompt "would you like ot change anything? [y/n]"
+   if ($edit -ne "n"){
+       notepad ./defaultCert.config 
+       $params = gc './defaultCert.config'
+   }
+   else{
+       $continue = $false
+   }
+}
+$continue = $true
+$cert = New-SelfSignedCertificate @params
+ 
+# Export certificate to disk in the current user's home directory
+if ($PSScriptRoot -ne $HOME)
+{
+   cd $HOME;
+}
+
+$certFileName = Join-Path $HOME $certFileName
+
+Write-Host "Exporting certificate to '$certFileName'..."
+Export-Certificate -Cert $cert -FilePath "$certFileName" -Type CERT
+
+Write-Host "Importing certificate into local Trusted Root Certification Authorities..."
+Import-Certificate -FilePath "$certFileName" -CertStoreLocation Cert:\LocalMachine\Root
+}
+
+#================================
+
+function generate-selfSignedROOTCA{
+   $rootCAParams = @{}
+   $rootCAParams = @{
+   FriendlyName = "JWS Test Root CA Cert"
+   DnsName = "JWS Test Root CA Cert"
+   Subject = "CN=JWSRootCA,O=JWSRootCA,OU=JWSRootCA"
+   KeyLength = 4096
+   KeyAlgorithm = 'RSA'
+   HashAlgorithm = 'SHA256'
+   KeyExportPolicy = 'Exportable'
+   KeyUsage = 'CertSign','CRLSign','DigitalSignature'
+   KeyUsageProperty = 'All'
+   NotAfter = (Get-Date).AddYears(15)
+   Provider = 'Microsoft Enhanced RSA and AES Cryptographic Provider'
+   CertStoreLocation = "Cert:\LocalMachine\My"
+   }
+
+$rootCACert = New-SelfSignedCertificate @rootCAParams
+# We need to the thumbprint of the Root CA Certificate in order to export the private key
+$rootCAThumbprint = $rootCACert.Thumbprint
+
+# Set the password that will be used for the Root CA Certificate's private key
+$myPword = read-host -prompt "enter a password for the certificate: "
+$rootCACertPassword = ConvertTo-SecureString -String "$myPword" -Force -AsPlainText
+$exportParams =@{
+   cert = 'Cert:\LocalMachine\My\' + $rootCAThumbprint
+   FilePath = 'JWSRootCACert.pfx'
+   password = $rootCACertPassword
+}
+Export-PfxCertificate @exportParams
+
+
+
+# Export the Root CA Certificate's public key
+Export-Certificate -Cert $rootCACert -FilePath 'JWSRootCACert.cer' -Type CERT
+}
+#================================
+
+
+#================================
 #
 # Export only the functions using PowerShell standard verb-noun naming.
 # Be sure to list each exported functions in the FunctionsToExport field of the module manifest file.
