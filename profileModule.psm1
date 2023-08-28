@@ -1,3 +1,7 @@
+function get-uptime{
+   $res = Get-CimInstance -ClassName win32_operatingsystem 
+   $res | Select-Object CSName,LastBootUpTime, @{Name="Uptime";Expression={"{0:dd}d:{0:hh}h:{0:mm}m:{0:ss}s" -f ((Get-Date) - $_.lastbootuptime)}}
+}
 function test-isElevated
 {
     $id = [System.Security.Principal.WindowsIdentity]::GetCurrent()
