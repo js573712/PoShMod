@@ -1,3 +1,19 @@
+# Google admin functions
+function get-GUser($upn){
+   # requires that GAM be installed and authorized
+   # https://github.com/GAM-team/GAM/wiki
+   write-host("Getting user report for [$upn]...") -ForegroundColor yellow
+   gam report users user $upn | ConvertFrom-Csv
+   return
+}
+function get-GGroupMembership{
+   param([parameter(Mandatory=$false,ValueFromPipeline=$true)] [String]$upn,
+   [parameter(mandatory=$false,valueFromPipeline=$true)] [switch]$group)
+
+
+}
+
+# END GOOGLE admin functions 
 function get-uptime{
    $res = Get-CimInstance -ClassName win32_operatingsystem 
    $res | Select-Object CSName,LastBootUpTime, @{Name="Uptime";Expression={"{0:dd}d:{0:hh}h:{0:mm}m:{0:ss}s" -f ((Get-Date) - $_.lastbootuptime)}}
