@@ -2,15 +2,13 @@ function send-slackMessage($message){
 $webhookURI = (($_conf.services) | ? {$_.id -eq "slack"}).url
 $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
 $headers.Add("Content-Type", "application/json")
-
 $body = @"
 {
-  `"message`": `"`$message`"
+  `"message`": `"$message`"
 }
 "@
-Invoke-WebRequest -uri $webhookURI -Headers $headers -Body $body -Method Post
-#$response = Invoke-RestMethod "$webhookURI" -Method 'POST' -Headers $headers -Body $body -TimeoutSec 0.005
-#$response | ConvertTo-Json
+$response = Invoke-RestMethod "$webhookURI" -Method 'POST' -Headers $headers -Body "$body" -TimeoutSec 120
+$response | ConvertTo-Json
 }
 # Google admin functions
 function get-GUser($upn){
